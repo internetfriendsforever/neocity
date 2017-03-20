@@ -1,4 +1,5 @@
 import createRegl from 'regl'
+import mat4 from 'gl-mat4'
 
 const canvas = document.createElement('canvas')
 
@@ -17,23 +18,55 @@ document.body.appendChild(canvas)
 
 const regl = createRegl(canvas)
 
-const drawTriangle = regl({
-  frag: `
-  void main() {
-    gl_FragColor = vec4(1, 0, 0, 1);
-  }`,
+const camera = regl({
+  uniforms: {
+    projection: () => mat4.ortho([], -10, 10, -10, 10, -100, 100),
+    view: ({ tick }) => {
+      const t = tick / 20
+      const eye = [Math.cos(t), 2, Math.sin(t)]
+      const center = [0, 0, 0]
+      const up = [0, 1, 0]
+      return mat4.lookAt([], eye, center, up)
+    },
+    model: mat4.identity([])
+  }
+})
 
+const triangle = regl({
   vert: `
-  attribute vec2 position;
-  void main() {
-    gl_Position = vec4(position, 0, 1);
-  }`,
+    uniform mat4 projection;
+    uniform mat4 model;
+    uniform mat4 view;
+    attribute vec3 position;
+
+    void main() {
+      gl_Position = projection * view * model * vec4(position, 1.0);
+    }
+  `,
+
+  uniforms: {
+    model: mat4.identity([])
+  },
+
+  frag: `
+    void main() {
+      gl_FragColor = vec4(1, 1, 1, 1);
+    }
+  `,
 
   attributes: {
-    position: [[0, -1], [-1, 0], [1, 1]]
+    position: [
+      [1, -1, 0],
+      [-1, -1, 0],
+      [0, 5, 0]
+    ]
   },
 
   count: 3
 })
 
-drawTriangle()
+regl.frame(({ time }) => {
+  camera(() => {
+    triangle()
+  })
+})
