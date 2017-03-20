@@ -1,29 +1,26 @@
 import createRegl from 'regl'
 import mat4 from 'gl-mat4'
+import vec3 from 'gl-vec3'
 
-const canvas = document.createElement('canvas')
+const regl = createRegl({
+  pixelRatio: 0.5,
+  attributes: {
+    alpha: false,
+    antialias: false
+  }
+})
 
-canvas.width = 512
-canvas.height = 320
-canvas.style.width = '100%'
-canvas.style.height = '62.5%'
-canvas.style.imageRendering = 'pixelated'
-canvas.style.background = 'black'
-canvas.style.flex = '0 0 auto'
-
-document.body.style.display = 'flex'
-document.body.style.background = '#222'
-document.body.style.margin = 0
-document.body.appendChild(canvas)
-
-const regl = createRegl(canvas)
+document.querySelector('canvas').style.imageRendering = 'pixelated'
 
 const camera = regl({
   uniforms: {
-    projection: () => mat4.ortho([], -10, 10, -10, 10, -100, 100),
+    projection: ({ viewportWidth, viewportHeight }) => {
+      const ratio = viewportWidth / viewportHeight
+      return mat4.ortho([], -10 * ratio, 10 * ratio, -10, 10, -100, 100)
+    },
     view: ({ tick }) => {
-      const t = tick / 20
-      const eye = [Math.cos(t), 2, Math.sin(t)]
+      const t = tick / 80
+      const eye = vec3.normalize([], [Math.cos(t), Math.sin(t) * 0.5 + 0.6, Math.sin(t)])
       const center = [0, 0, 0]
       const up = [0, 1, 0]
       return mat4.lookAt([], eye, center, up)
@@ -32,7 +29,7 @@ const camera = regl({
   }
 })
 
-const triangle = regl({
+const model = regl({
   vert: `
     uniform mat4 projection;
     uniform mat4 model;
@@ -46,8 +43,31 @@ const triangle = regl({
 
   uniforms: {
     model: mat4.identity([])
+  }
+})
+
+const ground = regl({
+  frag: `
+    void main() {
+      gl_FragColor = vec4(1, 0, 1, 1);
+    }
+  `,
+
+  attributes: {
+    position: [
+      [4, 0, 0],
+      [-4, 0, 0],
+      [0, 0, 4],
+      [4, 0, 0],
+      [-4, 0, 0],
+      [0, 0, -4]
+    ]
   },
 
+  count: 6
+})
+
+const triangle = regl({
   frag: `
     void main() {
       gl_FragColor = vec4(1, 1, 1, 1);
@@ -56,9 +76,9 @@ const triangle = regl({
 
   attributes: {
     position: [
-      [1, -1, 0],
-      [-1, -1, 0],
-      [0, 5, 0]
+      [1, 0, 0],
+      [-1, 0, 0],
+      [0, 2, 0]
     ]
   },
 
@@ -67,6 +87,9 @@ const triangle = regl({
 
 regl.frame(({ time }) => {
   camera(() => {
-    triangle()
+    model(() => {
+      ground()
+      triangle()
+    })
   })
 })

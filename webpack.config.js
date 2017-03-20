@@ -1,19 +1,22 @@
+const HtmlWebpackPlugin = require('html-webpack-plugin')
+
 module.exports = {
   entry: './src/index.js',
   output: {
-    path: __dirname + '/build',
+    path: __dirname + '/dist',
     filename: 'bundle.js'
   },
   module: {
     rules: [
       {
-        test: /\.js^/,
+        test: /\.js$/,
+        exclude: /node_modules/,
         loader: 'babel-loader'
       }
     ]
   },
   plugins: [
-    new (require('html-webpack-plugin'))({
+    new HtmlWebpackPlugin({
       title: '🅝🅔🅞🅒🅘🅣🅨'
     })
   ]
